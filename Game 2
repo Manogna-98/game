@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Bike Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #333;
+            overflow: hidden;
+            font-family: monospace;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+            background: #000;
+            image-rendering: pixelated; /* Retro pixel look */
+        }
+        #gameOver {
+            position: absolute;
+            color: #f00;
+            font-size: 30px;
+            text-align: center;
+            display: none;
+        }
+        #restartBtn {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 20px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="gameOver"></div>
+    <button id="restartBtn" onclick="restartGame()">Restart</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverText = document.getElementById('gameOver');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Bike properties
+        const bike = {
+            x: canvas.width / 2 - 15,
+            y: canvas.height - 60,
+            width: 30,
+            height: 20,
+            speed: 5,
+            dx: 0
+        };
+
+        // Obstacles
+        const obstacles = [];
+        const obstacleWidth = 40;
+        const obstacleHeight = 20;
+        let obstacleSpeed = 3;
+
+        // Game state
+        let score = 0;
+        let gameRunning = true;
+
+        // Controls
+        let rightPressed = false;
+        let leftPressed = false;
+
+        // Event listeners for controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') rightPressed = true;
+            else if (e.key === 'ArrowLeft') leftPressed = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight') rightPressed = false;
+            else if (e.key === 'ArrowLeft') leftPressed = false;
+        });
+
+        // Draw bike (simple retro rectangle with wheels)
+        function drawBike() {
+            ctx.fillStyle = '#0ff'; // Cyan for retro vibe
+            ctx.fillRect(bike.x, bike.y, bike.width, bike.height);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(bike.x + 5, bike.y + bike.height, 5, 5); // Left wheel
+            ctx.fillRect(bike.x + bike.width - 10, bike.y + bike.height, 5, 5); // Right wheel
+        }
+
+        // Draw obstacles
+        function drawObstacles() {
+            ctx.fillStyle = '#f00'; // Red for obstacles
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacleWidth, obstacleHeight);
+            });
+        }
+
+        // Update bike position
+        function updateBike() {
+            if (rightPressed && bike.x < canvas.width - bike.width) {
+                bike.dx = bike.speed;
+            } else if (leftPressed && bike.x > 0) {
+                bike.dx = -bike.speed;
+            } else {
+                bike.dx = 0;
+            }
+            bike.x += bike.dx;
+        }
+
+        // Update obstacles
+        function updateObstacles() {
+            if (Math.random() < 0.02) { // Randomly spawn obstacles
+                const x = Math.floor(Math.random() * (canvas.width - obstacleWidth));
+                obstacles.push({ x: x, y: -obstacleHeight });
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacleSpeed;
+                if (obstacle.y > canvas.height) {
+                    obstacles.splice(index, 1); // Remove off-screen obstacles
+                    score += 10; // Increase score for avoiding
+                }
+            });
+        }
+
+        // Check collision
+        function checkCollision() {
+            for (let obstacle of obstacles) {
+                if (
+                    bike.x < obstacle.x + obstacleWidth &&
+                    bike.x + bike.width > obstacle.x &&
+                    bike.y < obstacle.y + obstacleHeight &&
+                    bike.y + bike.height > obstacle.y
+                ) {
+                    gameRunning = false;
+                    gameOverText.textContent = Busted! Score: ${score} - Restart!;
+                    gameOverText.style.display = 'block';
+                    restartBtn.style.display = 'block';
+                    return;
+                }
+            }
+        }
+
+        // Draw score
+        function drawScore() {
+            ctx.font = '16px monospace';
+            ctx.fillStyle = '#fff';
+            ctx.fillText('Score: ' + score, 10, 20);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            drawBike();
+            drawObstacles();
+            updateBike();
+            updateObstacles();
+            checkCollision();
+            drawScore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Restart game
+        function restartGame() {
+            bike.x = canvas.width / 2 - 15;
+            obstacles.length = 0;
+            score = 0;
+            gameRunning = true;
+            gameOverText.style.display = 'none';
+            restartBtn.style.display = 'none';
+            gameLoop();
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
