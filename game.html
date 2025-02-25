@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mario vs Alien Ships</title>
+    <style>
+        canvas {
+            border: 1px solid white;
+            background: #000033;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #000033;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Mario object
+        const mario = {
+            x: 50,
+            y: 300,
+            width: 30,
+            height: 40,
+            speed: 5,
+            velocityY: 0,
+            jumping: false,
+            gravity: 0.5,
+            jumpStrength: -12
+        };
+
+        // Ground and enemies
+        const groundHeight = 50;
+        let enemies = [];
+        let spawnTimer = 0;
+
+        // Game state
+        let score = 0;
+        let gameOver = false;
+
+        // Controls
+        let rightPressed = false;
+        let spacePressed = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') rightPressed = true;
+            if (e.key === ' ' && !mario.jumping) {
+                mario.velocityY = mario.jumpStrength;
+                mario.jumping = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight') rightPressed = false;
+        });
+
+        // Draw solar system background
+        function drawBackground() {
+            // Sun
+            ctx.fillStyle = 'yellow';
+            ctx.beginPath();
+            ctx.arc(400, 200, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Planet orbits
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(400, 200, 80, 0, Math.PI * 2); // Orbit 1
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(400, 200, 120, 0, Math.PI * 2); // Orbit 2
+            ctx.stroke();
+
+            // Ground platform
+            ctx.fillStyle = 'gray';
+            ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+        }
+
+        // Draw Mario (simple version)
+        function drawMario() {
+            // Body
+            ctx.fillStyle = 'red';
+            ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
+            // Hat
+            ctx.fillRect(mario.x + 5, mario.y - 10, 20, 10);
+            // Face
+            ctx.fillStyle = '#FFDAB9';
+            ctx.fillRect(mario.x + 10, mario.y + 5, 10, 10);
+        }
+
+        // Draw alien spacecraft enemy
+        function drawEnemy(enemy) {
+            ctx.fillStyle = 'purple';
+            ctx.beginPath();
+            // Saucer shape
+            ctx.arc(enemy.x + enemy.width/2, enemy.y, enemy.width/2, Math.PI, 0); // Top half
+            ctx.lineTo(enemy.x, enemy.y + enemy.height); // Bottom left
+            ctx.lineTo(enemy.x + enemy.width, enemy.y + enemy.height); // Bottom right
+            ctx.fill();
+            // Cockpit
+            ctx.fillStyle = 'cyan';
+            ctx.beginPath();
+            ctx.arc(enemy.x + enemy.width/2, enemy.y, enemy.width/4, Math.PI, 0);
+            ctx.fill();
+        }
+
+        // Spawn enemies
+        function spawnEnemy() {
+            if (spawnTimer <= 0) {
+                enemies.push({
+                    x: canvas.width,
+                    y: canvas.height - groundHeight - 30,
+                    width: 40,
+                    height: 20,
+                    speed: 3
+                });
+                spawnTimer = 50;
+            }
+            spawnTimer--;
+        }
+
+        // Update game objects
+        function update() {
+            // Mario movement
+            if (rightPressed && mario.x < canvas.width - mario.width) {
+                mario.x += mario.speed;
+            }
+
+            // Gravity and jumping
+            mario.velocityY += mario.gravity;
+            mario.y += mario.velocityY;
+
+            // Ground collision
+            if (mario.y + mario.height > canvas.height - groundHeight) {
+                mario.y = canvas.height - groundHeight - mario.height;
+                mario.velocityY = 0;
+                mario.jumping = false;
+            }
+
+            // Update enemies
+            enemies.forEach(enemy => enemy.x -= enemy.speed);
+            enemies = enemies.filter(enemy => enemy.x + enemy.width > 0);
+
+            // Collision detection
+            enemies.forEach(enemy => {
+                if (mario.x + mario.width > enemy.x &&
+                    mario.x < enemy.x + enemy.width &&
+                    mario.y + mario.height > enemy.y &&
+                    mario.y < enemy.y + enemy.height) {
+                    gameOver = true;
+                }
+            });
+
+            // Score
+            score += 0.1;
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameOver) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                drawBackground();
+                drawMario();
+                enemies.forEach(drawEnemy);
+                spawnEnemy();
+                update();
+
+                // Score display
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText(`Score: ${Math.floor(score)}`, 10, 30);
+
+                requestAnimationFrame(gameLoop);
+            } else {
+                ctx.fillStyle = 'white';
+                ctx.font = '40px Arial';
+                ctx.fillText('Game Over!', 300, 200);
+                ctx.fillText(`Score: ${Math.floor(score)}`, 300, 250);
+            }
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
